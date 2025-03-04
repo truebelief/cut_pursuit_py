@@ -66,7 +66,3 @@ print(f"Number of segments: {len(np.unique(segmentation))}")
 If you use this implementation, please cite the original paper:
 
 Landrieu, L., & Obozinski, G. (2017). Cut Pursuit: Fast Algorithms to Learn Piecewise Constant Functions on General Weighted Graphs. SIAM Journal on Imaging Sciences, 10(4), 1724-1766.
-
-## License
-
-[Specify your license here]
