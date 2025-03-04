@@ -1,5 +1,6 @@
 name: Build and Release Wheels
-
+permissions:
+  contents: write
 on:
   push:
     tags:
