@@ -1,0 +1,42 @@
+name: Create Release with Wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to attach wheels'
+        required: true
+        default: 'v1.0.1'
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Optional: Download wheels artifact from your build workflow.
+      # This step assumes you uploaded an artifact named "wheels" previously.
+      - name: Download Wheels Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: wheelhouse
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: "Release ${{ github.event.inputs.release_tag }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Wheels to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: wheelhouse/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
