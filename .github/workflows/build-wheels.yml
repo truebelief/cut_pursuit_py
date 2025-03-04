@@ -12,12 +12,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -26,9 +26,13 @@ jobs:
 
       - name: Build wheels
         run: cibuildwheel --output-dir wheelhouse .
+        env:
+          CIBW_BUILD: cp38-* cp39-* cp310-* cp311-* cp312-*
+          CIBW_SKIP: pp* *-musllinux*
+          CIBW_BEFORE_ALL_LINUX: yum install -y pybind11-devel || apt-get update && apt-get install -y pybind11-dev
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
           path: wheelhouse/*.whl
@@ -38,12 +42,12 @@ jobs:
     needs: build_wheels
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Download wheels
-        uses: actions/download-artifact@v2
+      - name: Download all wheels
+        uses: actions/download-artifact@v3
         with:
-          name: wheels-ubuntu-latest-py3.11  # (adjust as needed or aggregate across jobs)
+          path: ./wheelhouse
 
       - name: Install Twine
         run: pip install twine
@@ -52,4 +56,4 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload *.whl
+        run: twine upload ./wheelhouse/**/*.whl
