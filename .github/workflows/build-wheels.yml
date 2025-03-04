@@ -4,7 +4,16 @@ on:
   push:
     tags:
       - "v*.*.*"  # Trigger on version tags
+    paths:
+      - '.github/workflows/build-wheels.yml'
+      - 'setup.py'
+      - 'src/**'
   pull_request:
+    paths:
+      - '.github/workflows/build-wheels.yml'
+      - 'setup.py'
+      - 'src/**'
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   build_wheels:
