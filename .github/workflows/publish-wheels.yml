@@ -1,0 +1,38 @@
+name: Publish Wheels to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Git tag of the release containing built wheels'
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Download wheels from the release assets.
+      # Here we use an action to download release assets; you may need to adjust based on your release setup.
+      - name: Download Wheels from Release
+        id: download_assets
+        uses: claytoncj/download-release-asset@v1
+        with:
+          tag: ${{ github.event.inputs.release_tag }}
+          asset: "*.whl"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List downloaded files
+        run: ls -la
+
+      - name: Install Twine
+        run: pip install twine
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload ./**/*.whl
