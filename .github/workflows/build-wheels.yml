@@ -20,6 +20,7 @@ on:
         description: 'Release tag to attach wheels'
         required: true
         default: 'v1.0.1'
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -49,12 +50,24 @@ jobs:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
-      - name: Create GitHub Release for v1.0.1
+      - name: Create Git tag if missing
+        run: |
+          git fetch --tags
+          if ! git rev-parse "${{ github.event.inputs.release_tag }}" >/dev/null 2>&1; then
+            git tag ${{ github.event.inputs.release_tag }}
+            git push origin ${{ github.event.inputs.release_tag }}
+          else
+            echo "Tag ${{ github.event.inputs.release_tag }} already exists."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create GitHub Release for ${{ github.event.inputs.release_tag }}
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v1.0.1"
-          name: "Release v1.0.1"
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: "Release ${{ github.event.inputs.release_tag }}"
           draft: false
           prerelease: false
         env:
@@ -66,5 +79,3 @@ jobs:
           files: wheelhouse/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  
