@@ -23,6 +23,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+        include:
+          # Add PyPy 3.8 specifically
+          - os: ubuntu-latest
+            python-version: "pp38"
     steps:
       - uses: actions/checkout@v4
 
@@ -33,12 +37,15 @@ jobs:
         run: python -m pip install cibuildwheel==2.23.0
 
       - name: Build wheels
+        env:
+          # Set CIBW_BUILD to target specific Python version
+          CIBW_BUILD: cp${{ matrix.python-version == 'pp38' && '38-manylinux_x86_64' || matrix.python-version == '3.6' && '36-*' || matrix.python-version == '3.7' && '37-*' || matrix.python-version == '3.8' && '38-*' || matrix.python-version == '3.9' && '39-*' || matrix.python-version == '3.10' && '310-*' || matrix.python-version == '3.11' && '311-*' || matrix.python-version == '3.12' && '312-*' }}${{ matrix.python-version == 'pp38' && ' pp38-manylinux_x86_64' || '' }}
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          name: cibw-wheels-${{ matrix.os }}-${{ matrix.python-version }}
           path: ./wheelhouse/*.whl
 
   publish:
