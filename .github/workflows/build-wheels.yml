@@ -44,12 +44,12 @@ jobs:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release for v1.0.1
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
+          tag_name: "v1.0.1"
+          name: "Release v1.0.1"
           draft: false
           prerelease: false
         env:
