@@ -3,6 +3,7 @@ from setuptools.command.build_ext import build_ext
 import os
 import sys
 import subprocess
+import platform
 
 # Try to import pybind11, with fallback
 try:
@@ -35,7 +36,7 @@ ext_modules = [
     ),
 ]
 
-# Custom build_ext command that adds C++11 flag
+# Custom build_ext command that adds C++11 flag and fixes PyPy linker issues
 class BuildExt(build_ext):
     def build_extension(self, ext):
         # Add C++11 flag
@@ -46,8 +47,25 @@ class BuildExt(build_ext):
             # Unix-like systems
             ext.extra_compile_args = ['-std=c++11', '-O3']
             
-        # Call parent build_extension
-        build_ext.build_extension(self, ext)
+            # Check if we're on PyPy
+            if platform.python_implementation() == 'PyPy':
+                # Explicitly set the linker for PyPy
+                self.compiler.linker_exe = ['g++']
+                ext.extra_link_args = ['-shared']
+            
+        # Call parent build_extension with proper error handling
+        try:
+            build_ext.build_extension(self, ext)
+        except TypeError as e:
+            if "NoneType' object is not subscriptable" in str(e) and platform.python_implementation() == 'PyPy':
+                print(f"Caught PyPy linker error: {e}")
+                print("Attempting with explicit linker configuration...")
+                # Even more explicit override for PyPy case
+                self.compiler.set_executable('linker_exe', 'g++')
+                self.compiler.set_executable('linker_so', 'g++ -shared')
+                build_ext.build_extension(self, ext)
+            else:
+                raise
 
 setup(
     name='cut_pursuit_py',
