@@ -6,6 +6,7 @@ on:
       release_tag:
         description: 'Git tag of the release containing built wheels'
         required: true
+        default: "v1.0.0"
 
 jobs:
   publish:
@@ -14,8 +15,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Download wheels from the release assets.
-      # Here we use an action to download release assets; you may need to adjust based on your release setup.
       - name: Download Wheels from Release
         id: download_assets
         uses: claytoncj/download-release-asset@v1
