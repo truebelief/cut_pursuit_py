@@ -33,11 +33,11 @@ jobs:
         run: python -m pip install cibuildwheel==2.23.0
 
       - name: Build wheels
-        env:
-          CIBW_BUILD: cp38-* cp39-* cp310-* cp311-* cp312-*
-          CIBW_SKIP: "*pypy*" "*-musllinux*"
         run: python -m cibuildwheel --output-dir wheelhouse
-
+        env:
+          CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-*
+          CIBW_SKIP: "*pypy* *-musllinux*"
+    
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
