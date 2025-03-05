@@ -69,7 +69,7 @@ class BuildExt(build_ext):
 
 setup(
     name='cut_pursuit_py',
-    version='0.1.1',
+    version='0.1.2',
     author='Zhouxin Xi',
     author_email='truebelief2010@gmail.com',
     description='Cut Pursuit Algorithm for Point Cloud Segmentation',
