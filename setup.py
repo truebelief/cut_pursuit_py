@@ -25,7 +25,7 @@ cpp_sources = [
 # Define extension
 ext_modules = [
     Extension(
-        'cut_pursuit._cut_pursuit',
+        'cut_pursuit_py._cut_pursuit',
         sources=cpp_sources,
         include_dirs=[
             pybind11.get_include(),
@@ -69,7 +69,7 @@ class BuildExt(build_ext):
 
 setup(
     name='cut_pursuit_py',
-    version='0.1.0',
+    version='0.1.1',
     author='Zhouxin Xi',
     author_email='truebelief2010@gmail.com',
     description='Cut Pursuit Algorithm for Point Cloud Segmentation',
