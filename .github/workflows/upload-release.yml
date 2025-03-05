@@ -1,0 +1,87 @@
+name: Upload Wheels to Release
+
+on:
+  workflow_dispatch:  # Allow manual triggering only
+    inputs:
+      release_tag:
+        description: 'Release tag to attach wheels'
+        required: true
+        default: 'v1.0.1'
+      artifact_dir:
+        description: 'Directory containing wheels (relative to repo root)'
+        required: true
+        default: './all-wheels'
+
+jobs:
+  upload_wheels:
+    name: Upload Wheels to Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Verify release tag exists
+        run: |
+          git fetch --tags
+          if ! git rev-parse "${{ github.event.inputs.release_tag }}" >/dev/null 2>&1; then
+            echo "::error::Tag ${{ github.event.inputs.release_tag }} does not exist."
+            exit 1
+          fi
+      
+      - name: List wheel files
+        id: find_wheels
+        run: |
+          WHEEL_FILES=$(find ${{ github.event.inputs.artifact_dir }} -type f -name "*.whl" | tr '\n' ' ')
+          echo "Found wheels: $WHEEL_FILES"
+          echo "wheel_files=$WHEEL_FILES" >> $GITHUB_OUTPUT
+
+      - name: Ensure release exists
+        id: check_release
+        run: |
+          RELEASE_EXISTS=$(gh release view ${{ github.event.inputs.release_tag }} --json id 2>/dev/null || echo "")
+          if [ -z "$RELEASE_EXISTS" ]; then
+            echo "Creating release for tag ${{ github.event.inputs.release_tag }}"
+            gh release create ${{ github.event.inputs.release_tag }} \
+              --title "Release ${{ github.event.inputs.release_tag }}" \
+              --notes "Automated release for ${{ github.event.inputs.release_tag }}"
+          else
+            echo "Release for tag ${{ github.event.inputs.release_tag }} already exists"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload wheels in batches
+        run: |
+          # Split wheels into batches to avoid timeouts and conflicts
+          WHEELS=(${{ steps.find_wheels.outputs.wheel_files }})
+          BATCH_SIZE=5
+          TOTAL=${#WHEELS[@]}
+          
+          for ((i=0; i<TOTAL; i+=BATCH_SIZE)); do
+            echo "Uploading batch $((i/BATCH_SIZE + 1))"
+            
+            # Create a batch of wheels
+            BATCH_FILES=""
+            for ((j=i; j<i+BATCH_SIZE && j<TOTAL; j++)); do
+              BATCH_FILES="$BATCH_FILES ${WHEELS[$j]}"
+            done
+            
+            # Upload this batch
+            gh release upload ${{ github.event.inputs.release_tag }} $BATCH_FILES --clobber || true
+            
+            # Sleep briefly between batches to avoid rate limits
+            sleep 2
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Verify upload success
+        run: |
+          echo "Release is available at: https://github.com/${{ github.repository }}/releases/tag/${{ github.event.inputs.release_tag }}"
+          ASSETS_COUNT=$(gh release view ${{ github.event.inputs.release_tag }} --json assets | jq '.assets | length')
+          echo "Successfully uploaded $ASSETS_COUNT assets to the release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
