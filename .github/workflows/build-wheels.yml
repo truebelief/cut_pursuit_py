@@ -23,18 +23,16 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels (and release) on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Restrict to a single OS for the release steps.
-        # You can build on more OSes in a separate workflow if needed.
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Python environment
+      # Used to host cibuildwheel
       - uses: actions/setup-python@v5
 
       - name: Install cibuildwheel
@@ -46,15 +44,19 @@ jobs:
           CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-*
           CIBW_SKIP: "*pypy* *-musllinux*"
     
-      - name: List wheelhouse directory
-        run: ls -la wheelhouse
-
-      - name: Upload artifact (optional)
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels
-          path: wheelhouse/*.whl
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
 
+  create_release:
+    name: Create Release and Upload Wheels
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
       - name: Create Git tag if missing
         run: |
           git fetch --tags
@@ -67,21 +69,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Create GitHub Release for ${{ github.event.inputs.release_tag }}
+      - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.release_tag }}
-          name: "Release ${{ github.event.inputs.release_tag }}"
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: "Release ${{ github.event.inputs.release_tag || github.ref_name }}"
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all-wheels
+          
       - name: Upload Wheels to Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.release_tag }}
-          files: wheelhouse/*.whl
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          files: ./all-wheels/**/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
