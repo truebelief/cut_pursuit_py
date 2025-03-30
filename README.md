@@ -11,7 +11,7 @@ pip install cut-pursuit-py
 ```
 
 
-## (Alternative) Installation from the source
+## Installation from the source (Alternative)
 ### 1. Clone the Repository
 
 Open a terminal and clone the repo:
