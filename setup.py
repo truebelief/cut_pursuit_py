@@ -5,7 +5,7 @@ import sys
 import subprocess
 import platform
 
-# Get version from environment or .bumpversion.cfg
+# Get version from environment or hardcoded
 def get_version():
     # First, check if VERSION_OVERRIDE is set (CI/CD environment)
     env_version = os.environ.get('VERSION_OVERRIDE')
@@ -13,20 +13,7 @@ def get_version():
         print(f"Using version from environment: {env_version}")
         return env_version
     
-    # Next, try to read from .bumpversion.cfg
-    try:
-        with open('.bumpversion.cfg', 'r') as f:
-            content = f.read()
-            version_match = re.search(r'current_version\s*=\s*(\S+)', content)
-            if version_match:
-                version = version_match.group(1)
-                print(f"Using version from .bumpversion.cfg: {version}")
-                return version
-    except (FileNotFoundError, IOError) as e:
-        print(f"Couldn't read .bumpversion.cfg: {e}")
-    
-    # Finally, fallback to hardcoded version
-    print("Using fallback hardcoded version: 0.1.2")
+    # Fall back to hardcoded version
     return '0.1.2'
 
 # Try to import pybind11, with fallback
@@ -37,7 +24,7 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pybind11'])
     import pybind11
 
-# Compile sources - adjust based on your file structure
+# Compile sources
 cpp_sources = [
     'src/_cut_pursuit.cpp',
     'src/cpp/cut_pursuit.cpp',
@@ -53,14 +40,14 @@ ext_modules = [
         sources=cpp_sources,
         include_dirs=[
             pybind11.get_include(),
-            os.path.abspath('src'),  # Use absolute path for src
-            os.path.abspath(os.path.join('src', 'cpp'))  # And for src/cpp
+            os.path.abspath('src'),
+            os.path.abspath(os.path.join('src', 'cpp'))
         ],
         language='c++',
     ),
 ]
 
-# Custom build_ext command that adds C++11 flag and fixes PyPy linker issues
+# Custom build_ext command
 class BuildExt(build_ext):
     def build_extension(self, ext):
         # Add C++11 flag
@@ -91,14 +78,9 @@ class BuildExt(build_ext):
             else:
                 raise
 
-
-# Get the version dynamically
-version = get_version()
-print(f"Building package with version: {version}")
-
 setup(
     name='cut_pursuit_py',
-    version=version,  # Use dynamic version here
+    version=get_version(),
     author='Zhouxin Xi',
     author_email='truebelief2010@gmail.com',
     description='Cut Pursuit Algorithm for Point Cloud Segmentation',
