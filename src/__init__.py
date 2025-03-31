@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "1.0.2"
 
 from ._cut_pursuit import perform_cut_pursuit
 
