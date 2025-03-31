@@ -25,13 +25,16 @@ jobs:
       - name: Install bump2version
         run: pip install bump2version
 
+      - name: Configure Git Identity for bump2version
+        run: |
+          git config --local user.email "truebelief2010@gmail.com"
+          git config --local user.name "GitHub Actions
+
       - name: Bump patch version
         run: bump2version patch
 
-      - name: Commit version bump
+      - name: (Optional) Additional Commit (if needed)
         run: |
-          git config --local user.email "truebelief2010@gmail.com"
-          git config --local user.name "GitHub Actions"
           git add .
           git commit -m "Bump version" || echo "No changes to commit"
           git push origin HEAD:main
