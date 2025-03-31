@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: true
+          fetch-depth: 0  # Get all history for proper versioning
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,10 +34,17 @@ jobs:
       - name: Bump patch version
         run: bump2version patch
 
-      - name: (Optional) Push changes if needed
+      - name: Push changes to main
         run: git push origin HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      # Get the new version to pass to other jobs
+      - name: Get version
+        id: get_version
+        run: echo "version=$(python setup.py --version)" >> $GITHUB_OUTPUT
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
           
   build-sdist:
     needs: bump-version
@@ -46,6 +54,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0  # Get all history
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -78,6 +87,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0  # Get all history
+          
+       # Different git pull command syntax for Windows vs Unix
+      - name: Fetch latest changes (Unix)
+        if: runner.os != 'Windows'
+        run: git pull origin main
+
+      - name: Fetch latest changes (Windows)
+        if: runner.os == 'Windows'
+        run: git pull origin main
+
+      - name: Verify version
+        run: |
+          # Print version to verify it matches the bumped version
+          python setup.py --version
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -116,7 +140,7 @@ jobs:
       #
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
-      url: https://pypi.org/project/cut_pursuit_py/${{ github.event.release.name }}
+      url: https://pypi.org/project/cut_pursuit_py/${{ needs.bump-version.outputs.version }}
     steps:
       # Download wheels built on Ubuntu
       - name: Download Ubuntu wheels
