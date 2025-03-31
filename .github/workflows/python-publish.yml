@@ -6,10 +6,40 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install bump2version
+        run: pip install bump2version
+
+      - name: Bump patch version
+        run: bump2version patch
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "truebelief2010@gmail.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Bump version" || echo "No changes to commit"
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
   build-sdist:
+    needs: bump-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -35,6 +65,7 @@ jobs:
           path: dist/*.tar.gz
   build-wheels:
     # This matrix job runs on all three platforms.
+    needs: bump-version
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
