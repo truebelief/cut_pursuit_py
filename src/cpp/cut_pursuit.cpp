@@ -250,7 +250,7 @@ TPL int CP::cut_pursuit(bool init)
         if (verbose){ cout << "\tCompute connected components... " << flush; }
         if (!compute_connected_components()) {
           if (verbose) {
-            cout << "Error: connected components exceeds the maximum value (65535). Return" << endl;
+            cout << "Error: connected components exceeds the maximum value (2^32). Return" << endl;
           }
           free(last_comp_assign); last_comp_assign = nullptr;
           free(reduced_edges); reduced_edges = nullptr;
