@@ -5,6 +5,30 @@ import sys
 import subprocess
 import platform
 
+# Get version from environment or .bumpversion.cfg
+def get_version():
+    # First, check if VERSION_OVERRIDE is set (CI/CD environment)
+    env_version = os.environ.get('VERSION_OVERRIDE')
+    if env_version:
+        print(f"Using version from environment: {env_version}")
+        return env_version
+    
+    # Next, try to read from .bumpversion.cfg
+    try:
+        with open('.bumpversion.cfg', 'r') as f:
+            content = f.read()
+            version_match = re.search(r'current_version\s*=\s*(\S+)', content)
+            if version_match:
+                version = version_match.group(1)
+                print(f"Using version from .bumpversion.cfg: {version}")
+                return version
+    except (FileNotFoundError, IOError) as e:
+        print(f"Couldn't read .bumpversion.cfg: {e}")
+    
+    # Finally, fallback to hardcoded version
+    print("Using fallback hardcoded version: 0.1.2")
+    return '0.1.2'
+
 # Try to import pybind11, with fallback
 try:
     import pybind11
@@ -67,9 +91,14 @@ class BuildExt(build_ext):
             else:
                 raise
 
+
+# Get the version dynamically
+version = get_version()
+print(f"Building package with version: {version}")
+
 setup(
     name='cut_pursuit_py',
-    version='0.1.2',
+    version=version,  # Use dynamic version here
     author='Zhouxin Xi',
     author_email='truebelief2010@gmail.com',
     description='Cut Pursuit Algorithm for Point Cloud Segmentation',
