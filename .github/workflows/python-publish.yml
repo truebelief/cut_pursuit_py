@@ -39,11 +39,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      # Extract version from .bumpversion.cfg using grep and awk
+      # Extract version directly from .bumpversion.cfg with a more robust approach
       - name: Get version
         id: get_version
         run: |
-          VERSION=$(grep current_version .bumpversion.cfg | awk '{print $3}')
+          cat .bumpversion.cfg
+          VERSION=$(cat .bumpversion.cfg | grep current_version | sed 's/current_version = //')
+          echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
     outputs:
       version: ${{ steps.get_version.outputs.version }}
