@@ -38,11 +38,13 @@ jobs:
         run: git push origin HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      # Get the new version to pass to other jobs
+      
+      # Get the new version from .bumpversion.cfg
       - name: Get version
         id: get_version
-        run: echo "version=$(python setup.py --version)" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(grep -oP '(?<=current_version = )[^ ]+' .bumpversion.cfg)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
     outputs:
       version: ${{ steps.get_version.outputs.version }}
           
@@ -55,6 +57,9 @@ jobs:
         with:
           ref: main
           fetch-depth: 0  # Get all history
+
+      - name: Fetch latest changes
+        run: git pull origin main
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -74,13 +79,12 @@ jobs:
         with:
           name: sdist
           path: dist/*.tar.gz
+
   build-wheels:
-    # This matrix job runs on all three platforms.
     needs: bump-version
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -88,8 +92,8 @@ jobs:
         with:
           ref: main
           fetch-depth: 0  # Get all history
-          
-       # Different git pull command syntax for Windows vs Unix
+
+      # Different git pull command syntax for Windows vs Unix
       - name: Fetch latest changes (Unix)
         if: runner.os != 'Windows'
         run: git pull origin main
@@ -99,9 +103,15 @@ jobs:
         run: git pull origin main
 
       - name: Verify version
+        shell: bash
         run: |
-          # Print version to verify it matches the bumped version
-          python setup.py --version
+          # Print version from .bumpversion.cfg to verify it matches the bumped version
+          if [ -f ".bumpversion.cfg" ]; then
+            grep -oP '(?<=current_version = )[^ ]+' .bumpversion.cfg || cat .bumpversion.cfg | grep current_version
+          else
+            echo ".bumpversion.cfg not found"
+            find . -type f -name "*.cfg" -o -name "__init__.py" | sort
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -115,13 +125,11 @@ jobs:
         run: cibuildwheel --output-dir wheelhouse .
         env:
           CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*
-          # CIBW_BUILD: cp311-*
           CIBW_SKIP: "*pypy* *-musllinux*"
 
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4
         with:
-          # The artifact name includes the runner OS.
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*
   
@@ -129,20 +137,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-wheels, build-sdist]
     permissions:
-      # Required for secure publishing
       id-token: write
-    # Dedicated environments with protections for publishing are strongly recommended.
-    # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
       name: pypi
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      # url: https://pypi.org/p/YOURPROJECT
-      #
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
       url: https://pypi.org/project/cut_pursuit_py/${{ needs.bump-version.outputs.version }}
     steps:
-      # Download wheels built on Ubuntu
       - name: Download Ubuntu wheels
         uses: actions/download-artifact@v4
         with:
@@ -160,7 +159,6 @@ jobs:
           name: wheels-windows-latest
           path: dist/
           
-      # Download source distribution
       - name: Download source distribution
         uses: actions/download-artifact@v4
         with:
