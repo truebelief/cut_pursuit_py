@@ -93,40 +93,42 @@ If there’s no error, your installation was successful.
 ```python
 import numpy as np
 import cut_pursuit_py
+from scipy.spatial import cKDTree
+
 
 # Assume pcd is a numpy array of 3D points (N x 3)
 def segment_point_cloud(pcd, k=7, reg_strength=1.0):
     # Preprocess point cloud 
     pcd = pcd - np.mean(pcd, axis=0)
-    
+
     # Compute k-nearest neighbors
-    from scipy.spatial import cKDTree
     kdtree = cKDTree(pcd)
     _, nn_idx = kdtree.query(pcd, k=k)
-    
+
     # Prepare graph structure
     indices = nn_idx[:, 1:]  # exclude self
     n_nodes = len(pcd)
-    
+
     # Create edge lists
-    eu = np.repeat(np.arange(n_nodes), k-1)
+    eu = np.repeat(np.arange(n_nodes), k - 1)
     ev = indices.ravel()
-    
+
     # Edge weights 
     edge_weights = np.ones_like(eu, dtype=np.float32)
-    
+
     # Perform cut pursuit
     segments = cut_pursuit_py.perform_cut_pursuit(
-        K=k,              # Number of neighbors
         reg_strength=reg_strength,  # Regularization strength
-        D=3,              # Dimension of points
-        pc_vec=pcd,        # Point cloud 
+        D=3,  # Dimension of points
+        pc_vec=pcd.astype(np.float32),  # Point cloud
         edge_weights=edge_weights,
-        first_edge=np.cumsum(np.repeat(k-1, n_nodes+1))[:-1],
-        adj_vertices=ev
+        Eu=eu.astype(np.uint32),
+        Ev=ev.astype(np.uint32),
+        verbose=True,
     )
-    
+
     return segments
+
 
 # Example usage
 point_cloud = np.random.rand(1000, 3)
