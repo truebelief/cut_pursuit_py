@@ -112,6 +112,8 @@ jobs:
           CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*
           CIBW_SKIP: "*pypy* *-musllinux*"
           VERSION_OVERRIDE: ${{ needs.bump-version.outputs.version }}
+          # Pass environment variables to the build process - critical for Linux
+          CIBW_ENVIRONMENT: VERSION_OVERRIDE=${{ needs.bump-version.outputs.version }}
 
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4
